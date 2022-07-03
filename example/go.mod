@@ -5,6 +5,7 @@ go 1.18
 require (
 	connect v0.0.0-00010101000000-000000000000
 	github.com/bufbuild/connect-go v0.1.1
+	github.com/bufbuild/connect-grpchealth-go v0.1.0
 	golang.org/x/net v0.0.0-20220630215102-69896b714898
 )
 

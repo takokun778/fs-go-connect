@@ -9,6 +9,8 @@ import (
 	greetv1 "connect/gen/greet/v1"
 	"connect/gen/greet/v1/greetv1connect"
 
+	grpchealth "github.com/bufbuild/connect-grpchealth-go"
+
 	"github.com/bufbuild/connect-go"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -29,12 +31,21 @@ func (s *GreetServer) Greet(
 }
 
 func main() {
+	compressMin := connect.WithCompressMinBytes(1024)
+
 	greeter := &GreetServer{}
+
 	mux := http.NewServeMux()
-	path, handler := greetv1connect.NewGreetServiceHandler(greeter)
-	mux.Handle(path, handler)
+
+	mux.Handle(greetv1connect.NewGreetServiceHandler(greeter, compressMin))
+
+	mux.Handle(grpchealth.NewHandler(
+		grpchealth.NewStaticChecker(greetv1connect.GreetServiceName),
+		compressMin,
+	))
+
 	http.ListenAndServe(
-		"localhost:8080",
+		":8080",
 		// Use h2c so we can serve HTTP/2 without TLS.
 		h2c.NewHandler(mux, &http2.Server{}),
 	)
