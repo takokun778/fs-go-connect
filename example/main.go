@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	greetv1 "connect/gen/greet/v1"
 	"connect/gen/greet/v1/greetv1connect"
@@ -46,8 +51,28 @@ func main() {
 		compressMin,
 	))
 
-	http.ListenAndServe(
-		":8080",
-		h2c.NewHandler(mux, &http2.Server{}),
-	)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
+	}
+
+	signals := make(chan os.Signal, 1)
+
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("HTTP listen and serve: %v", err)
+		}
+	}()
+
+	<-signals
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("HTTP shutdown: %v", err)
+	}
 }
