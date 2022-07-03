@@ -13,4 +13,4 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 
-replace connect => ./grpc
+replace connect => ../grpc
